@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -O3 -march=native -flto -DNDEBUG
+CXXFLAGS = -std=c++17 -Wall -O3 -march=native -flto -DNDEBUG -fprofile-use
 DRIVER_SRC = driver.cpp
 ENGINE_SRC = engine.cpp
 BUILD_DIR = build
@@ -37,7 +37,8 @@ $(TARGET_ENGINE): $(ENGINE_SRC)
 
 clean:
 	@echo "Cleaning up build artifacts..."
-	@rm -rf $(BUILD_DUR)
+	@rm -f $(BUILD_DIR)/engine
+	@rm -f $(BUILD_DIR)/driver
 	@rm -f output.txt
 	@echo "Cleanup complete."
 
