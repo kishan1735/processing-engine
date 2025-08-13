@@ -1,9 +1,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <sstream>
 #include <fstream>
-#include <map>
+#include <unordered_map>
+#include <algorithm>
 #include "zmq.hpp"
 
 struct AggregateData
@@ -16,58 +16,88 @@ struct AggregateData
 
 using namespace std;
 
+inline int fast_stoi(char *&p)
+{
+    int x = 0;
+    while (*p >= '0' && *p <= '9')
+    {
+        x = (x * 10) + (*p - '0');
+        ++p;
+    }
+    return x;
+}
+
 vector<string> parse_file_list(const string &file_list_str)
 {
     vector<string> files;
-    stringstream ss(file_list_str);
-    string file;
-
-    while (getline(ss, file, ','))
+    string current_file;
+    for (char c : file_list_str)
     {
-        files.push_back(file);
+        if (c == ',')
+        {
+            files.push_back(current_file);
+            current_file.clear();
+        }
+        else
+        {
+            current_file += c;
+        }
+    }
+    if (!current_file.empty())
+    {
+        files.push_back(current_file);
     }
     return files;
 }
 
 string process_files(const vector<string> &files)
 {
-    map<int, AggregateData> yearly_results;
+    unordered_map<int, AggregateData> yearly_results;
+    vector<char> buffer(2 * 1024 * 1024);
+    string leftover;
 
     for (const auto &file_path : files)
     {
-        ifstream input_file(file_path);
-        if (!input_file.is_open())
+        ifstream input_file(file_path, ios::binary);
+        leftover.clear();
+        while (true)
         {
-            cerr << "Engine could not open file: " << file_path << endl;
-            continue;
-        }
+            input_file.read(buffer.data(), buffer.size());
+            streamsize bytes_read = input_file.gcount();
+            if (bytes_read == 0)
+                break;
 
-        string line;
-        while (getline(input_file, line))
-        {
-            stringstream ss(line);
-            string student_id, batch_year_str, score_str;
-
-            getline(ss, student_id, ',');
-            getline(ss, batch_year_str, ',');
-            getline(ss, score_str, ',');
-
-            try
+            char *p = buffer.data();
+            char *end = p + bytes_read;
+            while (p < end)
             {
-                int year = stoi(batch_year_str);
-                int score = stoi(score_str);
+                while (p < end && *p != ',')
+                    p++;
+                if (p == end)
+                    break;
+                p++;
 
-                yearly_results[year].min_score = min(yearly_results[year].min_score, score);
-                yearly_results[year].max_score = max(yearly_results[year].max_score, score);
-                yearly_results[year].total_score_sum += score;
-                yearly_results[year].record_count++;
-            }
-            catch (const invalid_argument &e)
-            {
-                cerr << "Line is malformed" << endl;
+                int year = fast_stoi(p);
+                if (p == end)
+                    break;
+                p++;
+                int score = fast_stoi(p);
+
+                auto &data = yearly_results[year];
+                data.min_score = min(data.min_score, score);
+                data.max_score = max(data.max_score, score);
+                data.total_score_sum += score;
+                data.record_count++;
+
+                while (p < end && *p != '\n')
+                    p++;
+                if (p == end)
+                    break;
+                p++;
             }
         }
     }
+
     string result_str;
     for (const auto &pair : yearly_results)
     {
@@ -100,9 +130,9 @@ int main(int argc, char *argv[])
     string received_str = request.to_string();
 
     vector<string> files_to_process = parse_file_list(received_str);
-    cout << "Engine on port " << argv[1] << " received " << files_to_process.size() << " files to process." << endl;
 
     string results = process_files(files_to_process);
+
     socket.send(zmq::buffer(results), zmq::send_flags::none);
 
     return 0;

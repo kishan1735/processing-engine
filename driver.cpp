@@ -23,7 +23,7 @@ struct AggregateData
     int record_count = 0;
 };
 
-map<int, AggregateData> final_results;
+unordered_map<int, AggregateData> final_results;
 mutex results_mutex;
 
 void parse_and_merge_results(const string &partial)
