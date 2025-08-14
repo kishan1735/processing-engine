@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <numeric>
 #include <map>
+#include <unordered_map>
 #include <mutex>
 #include <sstream>
 #include <algorithm>
@@ -26,7 +27,7 @@ struct AggregateData
 unordered_map<int, AggregateData> final_results;
 mutex results_mutex;
 
-void parse_and_merge_results(const string &partial)
+void parse_and_merge(const string &partial)
 {
     stringstream ss(partial);
     string record;
@@ -82,7 +83,7 @@ void communicate(string port, string file_list)
     if (socket.recv(reply, zmq::recv_flags::none))
     {
         string partial = reply.to_string();
-        parse_and_merge_results(partial);
+        parse_and_merge(partial);
     }
     else
     {

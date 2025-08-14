@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -O3 -march=native -flto -DNDEBUG -fprofile-use
+CXXFLAGS = -std=c++17 -Wall -O3 -march=native -flto -DNDEBUG -fprofile-generate #-fprofile-use
 DRIVER_SRC = driver.cpp
 ENGINE_SRC = engine.cpp
 BUILD_DIR = build

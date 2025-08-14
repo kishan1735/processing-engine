@@ -27,25 +27,25 @@ inline int fast_stoi(char *&p)
     return x;
 }
 
-vector<string> parse_file_list(const string &file_list_str)
+vector<string> parse_files(const string &file_list_str)
 {
     vector<string> files;
-    string current_file;
+    string current;
     for (char c : file_list_str)
     {
         if (c == ',')
         {
-            files.push_back(current_file);
-            current_file.clear();
+            files.push_back(current);
+            current.clear();
         }
         else
         {
-            current_file += c;
+            current += c;
         }
     }
-    if (!current_file.empty())
+    if (!current.empty())
     {
-        files.push_back(current_file);
+        files.push_back(current);
     }
     return files;
 }
@@ -54,12 +54,12 @@ string process_files(const vector<string> &files)
 {
     unordered_map<int, AggregateData> yearly_results;
     vector<char> buffer(2 * 1024 * 1024);
-    string leftover;
+    string left;
 
     for (const auto &file_path : files)
     {
         ifstream input_file(file_path, ios::binary);
-        leftover.clear();
+        left.clear();
         while (true)
         {
             input_file.read(buffer.data(), buffer.size());
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
     socket.recv(request, zmq::recv_flags::none);
     string received_str = request.to_string();
 
-    vector<string> files_to_process = parse_file_list(received_str);
+    vector<string> files_to_process = parse_files(received_str);
 
     string results = process_files(files_to_process);
 
